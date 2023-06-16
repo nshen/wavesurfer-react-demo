@@ -1,11 +1,27 @@
 import Head from 'next/head'
-import Image from 'next/image'
 import { Inter } from 'next/font/google'
 import styles from '@/styles/Home.module.css'
+import { useState, useCallback, useRef, useEffect } from 'react'
+import { useWavesurfer } from '@/components/useWavesurfer'
+import { WaveSurferOptions, WaveSurferEvents } from 'wavesurfer.js'
 
 const inter = Inter({ subsets: ['latin'] })
 
 export default function Home() {
+
+  const urls = ['https://connect3-internal.infura-ipfs.io/ipfs/bafybeiakxsr3hyxcggsy6oqgwh2vzx37ztx5zfvyzjux6ah6x6wrwsgssi',
+    'https://statics-polygon-lens.s3.eu-west-1.amazonaws.com/media-snapshot/745843f4161c0abef447108b46995002c7574c8c381a6ae1a48f5751a3d4bd87.mp3']
+  const [audioUrl, setAudioUrl] = useState(urls[0])
+
+  // Swap the audio URL
+  const onUrlChange = useCallback(() => {
+    urls.reverse()
+    setAudioUrl(urls[0])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Render the wavesurfer component
+  // and a button to load a different audio file
   return (
     <>
       <Head>
@@ -14,110 +30,87 @@ export default function Home() {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      <main className={styles.main}>
-        <div className={styles.description}>
-          <p>
-            Get started by editing&nbsp;
-            <code className={styles.code}>pages/index.tsx</code>
-          </p>
-          <div>
-            <a
-              href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              By{' '}
-              <Image
-                src="/vercel.svg"
-                alt="Vercel Logo"
-                className={styles.vercelLogo}
-                width={100}
-                height={24}
-                priority
-              />
-            </a>
-          </div>
-        </div>
 
-        <div className={styles.center}>
-          <Image
-            className={styles.logo}
-            src="/next.svg"
-            alt="Next.js Logo"
-            width={180}
-            height={37}
-            priority
-          />
-          <div className={styles.thirteen}>
-            <Image
-              src="/thirteen.svg"
-              alt="13"
-              width={40}
-              height={31}
-              priority
-            />
-          </div>
-        </div>
+      <main className='bg-gray-200 w-screen h-screen overflow-hidden'>
 
-        <div className={styles.grid}>
-          <a
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <h2 className={inter.className}>
-              Docs <span>-&gt;</span>
-            </h2>
-            <p className={inter.className}>
-              Find in-depth information about Next.js features and&nbsp;API.
-            </p>
-          </a>
-
-          <a
-            href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <h2 className={inter.className}>
-              Learn <span>-&gt;</span>
-            </h2>
-            <p className={inter.className}>
-              Learn about Next.js in an interactive course with&nbsp;quizzes!
-            </p>
-          </a>
-
-          <a
-            href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <h2 className={inter.className}>
-              Templates <span>-&gt;</span>
-            </h2>
-            <p className={inter.className}>
-              Discover and deploy boilerplate example Next.js&nbsp;projects.
-            </p>
-          </a>
-
-          <a
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <h2 className={inter.className}>
-              Deploy <span>-&gt;</span>
-            </h2>
-            <p className={inter.className}>
-              Instantly deploy your Next.js site to a shareable URL
-              with&nbsp;Vercel.
-            </p>
-          </a>
-        </div>
+        <button className='p-4 m-4 bg-white' onClick={onUrlChange}>切歌</button>
+        <WaveSurferPlayer
+          height={100}
+          waveColor="rgb(200, 0, 200)"
+          progressColor="rgb(100, 0, 100)"
+          autoplay={true}
+          url={audioUrl}
+        />
       </main>
     </>
+  )
+}
+
+
+
+const WaveSurferPlayer = (props: Omit<WaveSurferOptions, 'container'>) => {
+  const containerRef = useRef<HTMLDivElement>(null)
+  // const [isPlaying, setIsPlaying] = useState(false)
+  const [currentTime, setCurrentTime] = useState(0)
+  const wavesurfer = useWavesurfer(containerRef, props)
+
+  const [logs, setLogs] = useState(['init'])
+
+  // On play button click
+  // const onPlayClick = useCallback(() => {
+  //   wavesurfer?.isPlaying() ? wavesurfer.pause() : wavesurfer?.play()
+  // }, [wavesurfer])
+
+  // Initialize wavesurfer when the container mounts
+  // or any of the props change
+  useEffect(() => {
+    if (!wavesurfer) return
+
+    setCurrentTime(0)
+    // setIsPlaying(false)
+
+    const onE = (event: keyof WaveSurferEvents) => {
+      return wavesurfer.on(event, () => { setLogs(prev => [...prev, event]) })
+    }
+
+    onE('ready')
+    // wavesurfer.on('ready', () => wavesurfer.play())
+    onE('load')
+    onE('scroll')
+    onE('seeking')
+    onE('play')
+    onE('pause')
+    onE('decode')
+    onE('finish')
+
+    wavesurfer.play()
+    console.log('play')
+    wavesurfer.on('timeupdate', (currentTime: number) => setCurrentTime(currentTime))
+
+    return () => {
+      // @ts-ignore
+      wavesurfer.unAll()
+    }
+  }, [wavesurfer])
+
+  return (
+    <div className='w-full p-4 flex flex-col gap-4'>
+      <div ref={containerRef} style={{ minHeight: '120px' }} />
+
+      {/* <button className='p-3 m-4 bg-white' onClick={onPlayClick} style={{ marginTop: '1em' }}> */}
+      {/*   {isPlaying ? 'Pause' : 'Play'} */}
+      {/* </button> */}
+      <button className='p-4 bg-white' onClick={() => wavesurfer?.playPause()}>play / pause</button>
+
+      <p>Seconds played: {currentTime}</p>
+
+      <p>events:</p>
+      <div className='w-full h-[400px] overflow-y-scroll bg-gray-300 text-yellow-700 p-4'>
+        {
+          logs.map((log, index) => (<p key={index}>{log}</p>))
+        }
+      </div>
+
+    </div>
   )
 }
