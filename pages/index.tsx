@@ -75,6 +75,7 @@ const WaveSurferPlayer = (props: Omit<WaveSurferOptions, 'container'>) => {
 
     onE('ready')
     // wavesurfer.on('ready', () => wavesurfer.play())
+    onE('interaction')
     onE('load')
     onE('scroll')
     onE('seeking')
